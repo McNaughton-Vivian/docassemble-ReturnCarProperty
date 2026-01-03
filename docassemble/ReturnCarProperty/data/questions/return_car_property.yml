@@ -1,0 +1,397 @@
+metadata:
+  title: Request return of personal property inside a repossessed car
+  short title: Request property in car
+  comment: This program helps you make a letter asking for the return of your personal property from a repossessed car.
+  authors:
+    - Vivian McNaughton
+---
+objects:
+  - users: ALPeopleList.using(there_are_any=True, complete_attribute=['complete'])
+  - items: DAList.using(object_type=Thing, there_are_any=True, complete_attribute=['complete'])
+  - company: ALIndividual 
+---
+include:
+  - docassemble.AssemblyLine:assembly_line.yml
+  - docassemble.ILAO:ilao-interview-framework.yml
+  - docassemble.ILAO:shared-basic-questions.yml
+---
+code: |
+  ilao_easy_form_title = "Request return of personal property inside a repossessed car"
+  ilao_easy_form_url = "https://www.illinoislegalaid.org/node/30791"
+  github_user = 'IllinoisLegalAidOnline'
+  github_repo_name = 'docassemble-ReturnCarProperty'
+  allowed_courts = ['Circuit']
+  user_ask_role = 'defendant'
+  al_form_type = 'existing_case'
+  form_name = "Request return of personal property inside a repossessed car"
+---
+# Road map
+sections:
+  - section_intro: Start
+  - section_company: Company
+  - section_car_property: Your car and property
+  - section_user: About you
+  - section_download: Download 
+---
+ # interview order block
+mandatory: True
+code: |
+  nav.set_section('section_intro')
+  sees_nav_bar
+  snapshot_start
+  how_to_use
+  accept_terms
+
+  nav.set_section('section_company')
+  if not know_finance_company:
+    company_kickout
+  company.name.first
+  company.address.address
+  account_number
+
+  nav.set_section('section_car_property')
+  repo_date
+  car_make
+  items.gather()
+  
+  nav.set_section('section_user')
+  users[0].name.first
+  users[0].address.address
+  users[0].has_email_address
+  letter_date
+
+  nav.set_section('section_download')
+  forms_assembling
+  snapshot_forms
+  get_docs_screen
+
+---
+#property gather loop
+code: |
+  items[i].name.text
+  items[i].complete = True
+---
+code: |
+  stuff_to_snapshot = {
+          'start_time': str(current_datetime().format_datetime()),
+          'started_interview': True, 
+          }
+  
+  try:
+    stuff_to_snapshot['ip_address'] = device(ip=True)
+  except:
+    pass
+  
+  stuff_to_snapshot['user_zip'] = showifdef('users[0].address.zip')
+
+  stuff_to_snapshot['downloaded_forms'] = showifdef('forms_assembling')
+  
+  store_variables_snapshot(
+          data=stuff_to_snapshot, persistent=True
+          )
+  snapshot_interview_state = True
+---
+code: |
+  snapshot_interview_state
+  snapshot_start = True  
+---
+code: |
+  reconsider('snapshot_interview_state')
+  snapshot_forms = True
+---
+id: welcome
+question: |
+  Request return of personal property inside a repossessed car
+subquestion: |
+  Welcome to Illinois Legal Aid Online's **Request return of personal property inside a repossessed car** Easy Form.
+
+  This program makes a letter asking for the return of your personal property left inside of a repossessed car.
+
+  To learn more, read ILAO's article about [**car repossession**](https://www.illinoislegalaid.org/node/32006).
+field: sees_nav_bar
+---
+id: instructions
+continue button field: how_to_use
+question: |
+  Instructions
+subquestion: |
+  A financial company must have repossessed a car with your property inside it to use this program. To make your letter you will need:
+
+  * The financial company's name and address,
+  * Your account number used by the financial company, and
+  * The make, model, and year of your car.
+
+  Set aside 5 to 15 minutes to finish this program. You can log in and save your work to continue later. 
+
+  ${ collapse_template(help_example) }  
+
+  Click on **{green words}** to learn what they mean. Some pages have a question mark in a circle ${ fa_icon("question-circle", color_css="#0dcaf0" ) } that helps explain things.
+
+  After you download your letter, you must mail it to the financial company.
+---
+template: help_example
+subject: |
+  **You can click sections like this to show more information.**
+content: |  
+  This is an example of help. Click again to hide.
+---
+id: know finance company
+question: |
+  Do you know the name of the finance company that repossessed your car?
+fields:
+  - no label: know_finance_company
+    datatype: yesnoradio
+---
+id: company kickout
+event: company_kickout
+question: |
+  Sorry
+subquestion: |
+  You must know the finance company that repossessed your car to use this program.
+
+  There may be other things besides this letter that can help. Use [**Get Legal Help**](https://www.illinoislegalaid.org/get-legal-help) to find free or low-cost legal services in your area.
+buttons:
+  - Exit: exit
+  - Restart: restart
+---
+id: company name
+question: |
+  What is the name of the company that repossessed your car?
+fields:
+  - Finance company name: company.name.first
+---
+id: company address
+question: |
+  What is ${ company.possessive('address') }?
+subquestion: |
+  You can look on a letter you received from ${ company.name.first } to find their address.
+fields:
+  - Street address: company .address.address
+    address autocomplete: True
+  - Address line 2: company .address.unit
+    required: False
+  - City: company .address.city
+  - State: company .address.state
+    code: |
+      states_list()   
+    default: IL   
+  - ZIP code: company .address.zip
+---
+id: account number
+question: |
+  What is your account number with ${company.name.first}?
+subquestion: |
+  The account number could contain letters, numbers, or symbols.
+
+  ${ collapse_template(help_account_number) }  
+
+fields:
+  - Account number : account_number
+    maxlength: 40
+---
+template: help_account_number
+subject: |
+  **Where can I find my account number?**
+content: |  
+  Your account number should be listed on the collection notice or letter you got from ${ company.name.first }. It might be called your file or customer number.  
+---
+id: repo date
+question: |
+  When was your car repossessed?
+fields:
+  - Date : repo_date
+    datatype: date
+    max: ${ today().format("yyyy-MM-dd") }
+---
+id: car info
+question: |
+  Details about the repossessed car
+subquestion: |
+  The make, model, and year of your car can usually be found on the title to your car or on your insurance card.
+
+  A car's **make** is the name of the company that made the car. For example, Honda, BMW, or Ford.
+
+  A car's **model** is the name of the specific line of car made by that company. For example, Escort, Explorer or Accord.
+
+  A car's **year** is the model year of the type of car.
+fields:
+  - Vehicle year: car_year
+    datatype: integer
+    maxlength: 4
+    min: 1900
+    max: 2100
+  - Vehicle make: car_make
+    maxlength: 15
+    help: |
+      Car examples: Chevrolet, Honda, and Ford    
+  - Vehicle model: car_model
+    maxlength: 15
+    help: |
+      Car examples: Malibu, Civic, and Mustang
+---
+id: property left
+question: |
+  % if i == 0:
+  What personal item did you leave in the car?
+  % else:
+  What is the ${ordinal(i)} personal item you left in the car?
+  % endif
+subquestion: |
+  % if i == 0:
+  If you left multiple items in the car, just enter one of them. You will be able to add more items in the following questions.
+  % endif
+fields:
+  - Personal item: items[i].name.text
+    maxlength: 100
+---
+id: property there is another
+question: |
+  Did you leave another personal item in the car?
+subquestion: |
+  So far you have told us about ${fix_punctuation(comma_and_list(items))}
+fields:
+  - no label: items.there_is_another
+    datatype: yesnoradio
+---
+id: user name
+question: |
+  What is your name?
+subquestion: |
+    If you don't have a first name and a last name, you can enter your name in the field labeled **First** and leave the other fields blank.
+fields:
+  - First: users[0].name.first
+  - Middle: users[0].name.middle
+    required: False
+  - Last: users[0].name.last
+    required: False
+  - Suffix: users[0].name.suffix
+    help: |
+      Some names have a suffix after the last name, such as "Senior," "III," or "Jr." If your name does not have a suffix, you can leave this blank.
+    code: |
+      name_suffix()
+    required: False
+---
+id: your address
+question: |
+  What is your current mailing address?
+fields:
+  - Street address: users[0].address.address
+    address autocomplete: True
+  - Address line 2: users[0].address.unit
+    required: False
+  - City: users[0].address.city
+  - State: users[0].address.state
+    code: |
+      states_list()
+    default: IL      
+  - ZIP code: users[0].address.zip
+    required: False
+---
+id: mail letter date
+question: |
+  When will you mail your letter?
+subquestion: |
+  This date will be printed on the letter.
+fields:
+  - Date : letter_date
+    datatype: date
+    default: ${ today().format("yyyy-MM-dd") }
+    min: ${ today().format("yyyy-MM-dd") }
+---
+id: forms assembling
+continue button field: forms_assembling
+question: |
+  Almost done
+subquestion: |
+  After you click **Next**, it may take a few moments to finish making your forms.
+  
+  ###### You do not need to refresh your screen. Hang in there!
+  
+  [NEWLINE]
+---
+id: your contact information
+generic object: ALIndividual
+question: |
+  What is your contact information?
+subquestion: |
+  The court or other parties might need to contact you about this case.
+
+  **This information will appear on your court forms.**
+  
+  If you do not want to list a phone number on your forms, leave it blank.
+
+  If you have an email address, you must list it. Be sure to check your email daily, otherwise you may miss important information about your case.
+
+  ${ collapse_template(contact_info_help) }  
+fields:  
+  - Phone number: x.phone_number
+    datatype: al_international_phone
+    required: False
+  - label: |
+      Do you have an email address?
+    field: x.has_email_address      
+    datatype: yesnoradio
+  - note: |
+      This email address will appear on your court forms. Be sure to check 
+      this email daily, otherwise you may miss important information about 
+      your case.
+    show if: x.has_email_address      
+  - Email address: x.email    
+    datatype: email
+    show if: 
+      variable: x.has_email_address
+      is: True
+---
+template: contact_info_help
+subject: |
+  **What if I don't want to list my email address?**
+content: |  
+  If you do not want to enter your personal email address, you can create a new email account to get email about your case.
+  
+  To make a new email account try one of these email services:
+  
+  * [**Gmail**](https://accounts.google.com/SignUp)
+  * [**Outlook**](https://outlook.live.com/owa/?nlp=1&signup=1)
+  * [**Yahoo**](https://login.yahoo.com/account/create?.lang=en-US&.intl=us)
+---
+id: get docs screen
+event: get_docs_screen
+question: |
+  Download
+subquestion: |
+  Your letter is ready. View and download your forms below. Click **:edit: Make changes** to fix any mistakes.
+
+  After you get your letter, sign it, make a copy, and send it along to the company that repossessed your car.  
+
+  ${ action_button_html(url_action('review_answers'), label=':edit: Make changes', color='success', size="md") }
+
+  ${ al_user_bundle.download_list_html() }
+
+  [NEWLINE]
+
+  ${ al_user_bundle.send_button_html(show_editable_checkbox=False) }
+
+  Thank you for using ILAO Easy Forms!
+under: |
+  % if not user_logged_in():
+  [${fa_icon("sign-in-alt", color="#0079d0", size="sm")} Sign-in](${url_of('login', next=interview_url())}) or [create](${url_of('register', next=interview_url())}) an ILAO Easy Form account to save your progress (optional).
+  % endif 
+
+  [NEWLINE]
+  ${ action_button_html(interview_url(i="docassemble.ILAO:feedback.yml", easy_form_interview=ilao_easy_form_url, easy_form_title=ilao_easy_form_title, easy_form_page=current_context().question_id, easy_form_variable=current_context().variable, local=False,reset=1), label=':comment: Was this program helpful?', color="#181c36", size="md", new_window=True) }
+---
+objects:
+  - al_user_bundle: ALDocumentBundle.using(elements= [letter], filename="request_to_return_property_in_repossessed_par.pdf", title="All forms")
+---
+objects:
+  - letter: ALDocument.using(title="Request to return property in repossessed car", filename="request_property_in_car_letter.pdf", has_addendum=False, enabled=True)
+---
+code: |
+  #instructions.enabled = True
+  letter.enabled = True
+---
+attachment:
+  - name: letter
+    variable name: letter[i]
+    filename: letter
+    docx template file: request_property_in_car_letter.docx
