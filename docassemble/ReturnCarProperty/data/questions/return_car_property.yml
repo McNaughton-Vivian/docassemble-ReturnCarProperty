@@ -5,15 +5,15 @@ metadata:
   authors:
     - Vivian McNaughton
 ---
-objects:
-  - users: ALPeopleList.using(there_are_any=True, complete_attribute=['complete'])
-  - items: DAList.using(object_type=Thing, there_are_any=True, complete_attribute=['complete'])
-  - company: ALIndividual 
----
 include:
   - docassemble.AssemblyLine:assembly_line.yml
   - docassemble.ILAO:ilao-interview-framework.yml
   - docassemble.ILAO:shared-basic-questions.yml
+---
+objects:
+  - users: ALPeopleList.using(there_are_any=True, complete_attribute=['complete'])
+  - items: DAList.using(object_type=Thing, there_are_any=True, complete_attribute=['complete'])
+  - company: ALIndividual 
 ---
 code: |
   ilao_easy_form_title = "Request return of personal property inside a repossessed car"
@@ -42,6 +42,7 @@ code: |
   set_progress(5)
   how_to_use
   accept_terms
+  about_your_letter
 
   nav.set_section('section_company')
   if not know_finance_company:
@@ -62,7 +63,7 @@ code: |
   users[0].name.first
   users[0].address.address
   set_progress(80)
-  users[0].has_email_address
+  users[0].phone_number
   letter_date
 
   nav.set_section('section_download')
@@ -121,11 +122,12 @@ continue button field: how_to_use
 question: |
   Instructions
 subquestion: |
-  A financial company must have repossessed a car with your property inside it to use this program. To make your letter you will need:
+  A company must have repossessed a car with your property inside it to use this program. To make your letter you will need:
 
-  * The financial company's name and address,
-  * Your account number used by the financial company, and
-  * The make, model, and year of your car.
+  * The repossession company's name and address,
+  * Your account number used by the repossession company,
+  * The make, model, and year of your car, and
+    * the items you left in your car.
 
   Set aside 5 to 15 minutes to finish this program. You can log in and save your work to continue later. 
 
@@ -133,7 +135,7 @@ subquestion: |
 
   Click on **{green words}** to learn what they mean. Some pages have a question mark in a circle ${ fa_icon("question-circle", color_css="#0dcaf0" ) } that helps explain things.
 
-  After you download your letter, you must mail it to the financial company.
+  After you download your letter, you must mail it to the repossession company.
 ---
 template: help_example
 subject: |
@@ -141,19 +143,44 @@ subject: |
 content: |  
   This is an example of help. Click again to hide.
 ---
-id: know finance company
+id: about your letter
+continue button field: about_your_letter
 question: |
-  Do you know the name of the finance company that repossessed your car?
+  About your letter
+subquestion: |
+  The letter this program makes will tell the finance company they are legally required to give you a detailed list of the property in your car when it was repossessed. It will also ask the company for information on how you can get the property back from them.
+
+  The Illinois Collateral Recovery Act requires the company to respond within 5 business days. If you don't hear from them, you may want to consider other legal options. Use [**Get Legal Help**](https://www.illinoislegalaid.org/get-legal-help) to find free or low-cost legal services in your area.
+  
+  You will need to send the letter by certified mail. Learn more about [**certified mail**](https://faq.usps.com/s/article/Certified-Mail-The-Basics).
+---
+id: know repo company
+question: |
+  Do you know the name of the company that repossesed your car?
+subquestion: |
+  This is referred to as the "repossession company" or "repossession agency." This might not be the same company as the towing company or the company that says you owe them money.
+
+  ${collapse_template(where_find_repo_info)}
 fields:
   - no label: know_finance_company
     datatype: yesnoradio
+---
+template: where_find_repo_info
+subject: |
+  **Learn where to find this information**
+content: |
+  You can learn about the company that repossessed your car from the company you owe money to. 
+  
+  That company is supposed to send you a notice of repossession. The notice should name the repossession agency that repossessed your car. You can also call the company to ask who repossessed your car.
 ---
 id: company kickout
 event: company_kickout
 question: |
   Sorry
 subquestion: |
-  You must know the finance company that repossessed your car to use this program.
+  You must know the company that repossessed your car to use this program.
+
+  Your creditor is supposed to send you a notice of the repossession. This notice should name the licensed repossession agency that repossessed your car.
 
   There may be other things besides this letter that can help. Use [**Get Legal Help**](https://www.illinoislegalaid.org/get-legal-help) to find free or low-cost legal services in your area.
 buttons:
@@ -163,25 +190,28 @@ buttons:
 id: company name
 question: |
   What is the name of the company that repossessed your car?
+subquestion: |
+  ${collapse_template(where_find_repo_info)}
 fields:
-  - Finance company name: company.name.first
+  - Company name: company.name.first
+    maxlength: 50
 ---
 id: company address
 question: |
   What is ${ company.possessive('address') }?
 subquestion: |
-  You can look on a letter you received from ${ company.name.first } to find their address.
+  ${collapse_template(where_find_repo_info)}
 fields:
-  - Street address: company .address.address
+  - Street address: company.address.address
     address autocomplete: True
-  - Address line 2: company .address.unit
+  - Address line 2: company.address.unit
     required: False
-  - City: company .address.city
-  - State: company .address.state
+  - City: company.address.city
+  - State: company.address.state
     code: |
       states_list()   
     default: IL   
-  - ZIP code: company .address.zip
+  - ZIP code: company.address.zip
 ---
 id: account number
 question: |
@@ -197,13 +227,17 @@ fields:
 ---
 template: help_account_number
 subject: |
-  **Where can I find my account number?**
+  **Finding your account number**
 content: |  
-  Your account number should be listed on the collection notice or letter you got from ${ company.name.first }. It might be called your file or customer number.  
+  Your account number should be listed on the collection notice or letter you got from ${ company.name.first } or from the company you owe money to. It might be called your file or customer number.
 ---
 id: repo date
 question: |
   When was your car repossessed?
+subquestion: |
+  This date may be included on the collection notice or letter you got from ${ company.name.first } or from the company you owe money to.
+
+  If you know around what day your car was repossessed but you do not know the exact date, you can enter an estimate.
 fields:
   - Date : repo_date
     datatype: date
@@ -215,25 +249,25 @@ question: |
 subquestion: |
   The make, model, and year of your car can usually be found on the title to your car or on your insurance card.
 
-  A car's **make** is the name of the company that made the car. For example, Honda, BMW, or Ford.
+  A car's **make** is the name of the company that made the car. For example: Ford, Toyota, or Honda.
 
-  A car's **model** is the name of the specific line of car made by that company. For example, Escort, Explorer or Accord.
+  A car's **model** is the name of the specific line of car made by that company. For example: Explorer, Camry, or Civic.
 
   A car's **year** is the model year of the type of car.
 fields:
+  - Vehicle make: car_make
+    maxlength: 15
+    help: |
+      Car examples: Ford, Toyota, or Honda  
+  - Vehicle model: car_model
+    maxlength: 15
+    help: |
+      Car examples: Explorer, Camry, or Civic
   - Vehicle year: car_year
     datatype: integer
     maxlength: 4
     min: 1900
     max: 2100
-  - Vehicle make: car_make
-    maxlength: 15
-    help: |
-      Car examples: Chevrolet, Honda, and Ford    
-  - Vehicle model: car_model
-    maxlength: 15
-    help: |
-      Car examples: Malibu, Civic, and Mustang
 ---
 id: property left
 question: |
@@ -245,10 +279,12 @@ question: |
 subquestion: |
   % if i == 0:
   If you left multiple items in the car, just enter one of them. You will be able to add more items in the following questions.
+  % else:
+  So far you have told us about ${fix_punctuation(comma_and_list(items.complete_elements()))}
   % endif
 fields:
   - Personal item: items[i].name.text
-    maxlength: 100
+    maxlength: 50
 ---
 id: property there is another
 question: |
@@ -316,43 +352,25 @@ subquestion: |
   [NEWLINE]
 ---
 id: your contact information
-generic object: ALIndividual
 question: |
   What is your contact information?
 subquestion: |
-  The court or other parties might need to contact you about this case.
-
-  **This information will appear on your court forms.**
-  
-  If you do not want to list a phone number on your forms, leave it blank.
-
-  If you have an email address, you must list it. Be sure to check your email daily, otherwise you may miss important information about your case.
+  You do not have to enter your phone number or email address, but having them in your letter can help ${company.name.first} send you your inventory quicker.
 
   ${ collapse_template(contact_info_help) }  
 fields:  
-  - Phone number: x.phone_number
+  - Phone number: users[0].phone_number
     datatype: al_international_phone
     required: False
-  - label: |
-      Do you have an email address?
-    field: x.has_email_address      
-    datatype: yesnoradio
-  - note: |
-      This email address will appear on your court forms. Be sure to check 
-      this email daily, otherwise you may miss important information about 
-      your case.
-    show if: x.has_email_address      
-  - Email address: x.email    
+  - Email address: users[0].email    
     datatype: email
-    show if: 
-      variable: x.has_email_address
-      is: True
+    required: False
 ---
 template: contact_info_help
 subject: |
   **What if I don't want to list my email address?**
 content: |  
-  If you do not want to enter your personal email address, you can create a new email account to get email about your case.
+  If you do not want to enter your personal email address, you can create a new email account to get email about your property.
   
   To make a new email account try one of these email services:
   
@@ -367,7 +385,7 @@ question: |
 subquestion: |
   Your letter is ready. View and download your forms below. Click **:edit: Make changes** to fix any mistakes.
 
-  After you get your letter, sign it, make a copy, and send it along to the company that repossessed your car.  
+  After you get your letter, sign it, make a copy, and send it along to the repossession company that took your car.  
 
   ${ action_button_html(url_action('review_answers'), label=':edit: Make changes', color='success', size="md") }
 
@@ -376,6 +394,8 @@ subquestion: |
   [NEWLINE]
 
   ${ al_user_bundle.send_button_html(show_editable_checkbox=False) }
+
+  **Note:** This program **does not mail** your letter. You will need to do this yourself.
 
   Thank you for using ILAO Easy Forms!
 under: |
@@ -390,8 +410,8 @@ objects:
   - al_user_bundle: ALDocumentBundle.using(elements= [instructions, letter], filename="request_to_return_property_in_repossessed_par.pdf", title="All forms")
 ---
 objects:
-  - letter: ALDocument.using(title="Request to return property in repossessed car", filename="request_property_in_car_letter.pdf", has_addendum=False, enabled=True)
-  - instructions: ALDocument.using(title="Instructions", filename="request_property_in_car_instrutions.pdf", has_addendum=False, enabled=True)
+  - letter: ALDocument.using(title="Letter to repossession company", filename="request_letter.pdf", has_addendum=False, enabled=True)
+  - instructions: ALDocument.using(title="Instructions", filename="instructions.pdf", has_addendum=False, enabled=True)
 ---
 code: |
   instructions.enabled = True
@@ -419,7 +439,7 @@ subquestion: |
 review:
   - Edit: company.name.first
     button: |
-      **Financial company's name:**
+      **Repossession company's name:**
       ${company.name.first}
   - Edit: company.address.address
     button: |
@@ -502,19 +522,19 @@ review:
     button: |
       **Your address:**
       ${users[0].address.on_one_line(bare=True)}
-  - Edit: users[0].has_email_address
+  - Edit: users[0].phone_number
     button: |
       **Your contact information:**
 
-      % if users[0].has_email_address:
-      * Email: ${users[0].email}
-      % else:
-      * Email
-      % endif
       % if users[0].phone_number != "":
       * Phone: ${phone_number_formatted(users[0].phone_number)}
       % else:
       * Phone:
+      % endif
+      % if users[0].email != "":
+      * Email: ${users[0].email}
+      % else:
+      * Email
       % endif
   - Edit: letter_date
     button: |
@@ -532,7 +552,7 @@ review:
       <h4>Company</h4>
   - Edit: company.name.first
     button: |
-      **Financial company's name:**
+      **Repossession company's name:**
       ${company.name.first}
   - Edit: company.address.address
     button: |
@@ -569,19 +589,19 @@ review:
     button: |
       **Your address:**
       ${users[0].address.on_one_line(bare=True)}
-  - Edit: users[0].has_email_address
+  - Edit: users[0].phone_number
     button: |
       **Your contact information:**
 
-      % if users[0].has_email_address:
-      * Email: ${users[0].email}
-      % else:
-      * Email
-      % endif
       % if users[0].phone_number != "":
       * Phone: ${phone_number_formatted(users[0].phone_number)}
       % else:
       * Phone:
+      % endif
+      % if users[0].email != "":
+      * Email: ${users[0].email}
+      % else:
+      * Email
       % endif
   - Edit: letter_date
     button: |
