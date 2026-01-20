@@ -127,7 +127,7 @@ subquestion: |
   * The repossession company's name and address,
   * Your account number used by the repossession company,
   * The make, model, and year of your car, and
-    * the items you left in your car.
+  * The items you left in your car.
 
   Set aside 5 to 15 minutes to finish this program. You can log in and save your work to continue later. 
 
@@ -484,13 +484,23 @@ subquestion: |
 
   ${ items.add_action() }
 ---
+#table: items.table
+#rows: items
+#columns:
+#  - Property: |
+#      row_item.name.text if defined("row_item.name.text") else ""
+#  - Edit: |
+#      action_button_html(url_action(row_item.attr_name("row_item.name.text")), label="Edit", icon="pencil-alt")
+#delete buttons: True
+#confirm: True
+---
 table: items.table
 rows: items
 columns:
   - Property: |
       row_item.name.text if defined("row_item.name.text") else ""
-  - Edit: |
-      action_button_html(url_action(row_item.attr_name("review_item")), label="Edit", icon="pencil-alt")
+edit:
+  - name.text
 delete buttons: True
 confirm: True
 ---
